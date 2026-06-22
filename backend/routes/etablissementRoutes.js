@@ -4,6 +4,7 @@ const etablissementController = require('../controllers/etablissementController'
 
 router.get('/', etablissementController.getAllEtablissements);
 router.post('/', etablissementController.createEtablissement);
+router.post('/import', etablissementController.importExcel);
 router.get('/:id', etablissementController.getEtablissementById);
 router.put('/:id', etablissementController.updateEtablissement);
 router.delete('/:id', etablissementController.deleteEtablissement);

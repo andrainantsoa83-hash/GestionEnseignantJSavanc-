@@ -11,7 +11,7 @@ exports.login = async (req, res) => {
     }
 
     // 1. Chercher l'utilisateur par nom
-    const [rows] = await db.query('SELECT * FROM utilisateurs WHERE nom = ?', [nom]);
+    const [rows] = await db.query('SELECT * FROM utilisateur WHERE nom = ?', [nom]);
     
     if (rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Identifiants incorrects' });

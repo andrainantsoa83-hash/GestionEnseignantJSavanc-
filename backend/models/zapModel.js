@@ -1,29 +1,34 @@
 const db = require('../config/db');
 
 class Zap {
-  // Pagination, Recherche et Filtres (Commune & Cisco)
-  static async findAll(page = 1, limit = 5, search = '', id_commune = null, id_cisco = null) {
+  static async findAll(page = 1, limit = 500, search = '', commune_id = null, cisco_id = null) {
     const offset = (page - 1) * limit;
-    let query = 'SELECT * FROM zaps WHERE 1=1';
-    let countQuery = 'SELECT COUNT(*) as total FROM zaps WHERE 1=1';
+    let query = `
+      SELECT z.*, c.nom_commune, ci.nom_cisco 
+      FROM zap z
+      LEFT JOIN commune c ON z.commune_id = c.id
+      LEFT JOIN cisco ci ON z.cisco_id = ci.id
+      WHERE 1=1
+    `;
+    let countQuery = 'SELECT COUNT(*) as total FROM zap z WHERE 1=1';
     const params = [];
 
     if (search) {
-      query += ' AND nom LIKE ?';
-      countQuery += ' AND nom LIKE ?';
+      query += ' AND z.nom_zap LIKE ?';
+      countQuery += ' AND z.nom_zap LIKE ?';
       params.push(`%${search}%`);
     }
 
-    if (id_commune) {
-      query += ' AND id_commune = ?';
-      countQuery += ' AND id_commune = ?';
-      params.push(id_commune);
+    if (commune_id) {
+      query += ' AND z.commune_id = ?';
+      countQuery += ' AND z.commune_id = ?';
+      params.push(commune_id);
     }
 
-    if (id_cisco) {
-      query += ' AND id_cisco = ?';
-      countQuery += ' AND id_cisco = ?';
-      params.push(id_cisco);
+    if (cisco_id) {
+      query += ' AND z.cisco_id = ?';
+      countQuery += ' AND z.cisco_id = ?';
+      params.push(cisco_id);
     }
 
     query += ' LIMIT ? OFFSET ?';
@@ -40,44 +45,43 @@ class Zap {
   }
 
   static async findById(id) {
-    const [rows] = await db.query('SELECT * FROM zaps WHERE id = ?', [id]);
+    const [rows] = await db.query('SELECT * FROM zap WHERE id = ?', [id]);
     return rows[0];
   }
 
   static async create(data) {
-    const { nom, id_commune, id_cisco } = data;
+    const { nom_zap, code_zap, commune_id, cisco_id } = data;
     const [result] = await db.query(
-      'INSERT INTO zaps (nom, id_commune, id_cisco) VALUES (?, ?, ?)',
-      [nom, id_commune, id_cisco]
+      'INSERT INTO zap (nom_zap, code_zap, commune_id, cisco_id) VALUES (?, ?, ?, ?)',
+      [nom_zap, code_zap, commune_id, cisco_id]
     );
     return result.insertId;
   }
 
   static async update(id, data) {
-    const { nom, id_commune, id_cisco } = data;
+    const { nom_zap, code_zap, commune_id, cisco_id } = data;
     const [result] = await db.query(
-      'UPDATE zaps SET nom = ?, id_commune = ?, id_cisco = ? WHERE id = ?',
-      [nom, id_commune, id_cisco, id]
+      'UPDATE zap SET nom_zap = ?, code_zap = ?, commune_id = ?, cisco_id = ? WHERE id = ?',
+      [nom_zap, code_zap, commune_id, cisco_id, id]
     );
     return result.affectedRows;
   }
 
   static async delete(id) {
-    const [result] = await db.query('DELETE FROM zaps WHERE id = ?', [id]);
+    const [result] = await db.query('DELETE FROM zap WHERE id = ?', [id]);
     return result.affectedRows;
   }
 
-  // Statistiques enseignants par ZAP (total + répartition par statut)
   static async getStatistiques(id) {
     const query = `
       SELECT statut, COUNT(*) as count 
-      FROM enseignants 
-      WHERE id_zap = ? 
+      FROM enseignant 
+      WHERE zap_id = ? 
       GROUP BY statut
     `;
     const [rows] = await db.query(query, [id]);
     
-    const totalQuery = 'SELECT COUNT(*) as total FROM enseignants WHERE id_zap = ?';
+    const totalQuery = 'SELECT COUNT(*) as total FROM enseignant WHERE zap_id = ?';
     const [totalRows] = await db.query(totalQuery, [id]);
 
     return {
@@ -86,7 +90,6 @@ class Zap {
     };
   }
 
-  // Calcul du besoin en recrutement pour une ZAP spécifique
   static async getBesoinRecrutement(id) {
     const query = `
       SELECT 
@@ -96,17 +99,16 @@ class Zap {
           SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) -
           SUM(CASE WHEN LOWER(statut) NOT LIKE '%fonctionnaire%' THEN 1 ELSE 0 END)
         ) AS besoin_recrutement
-      FROM enseignants 
-      WHERE id_zap = ?
+      FROM enseignant 
+      WHERE zap_id = ?
     `;
     const [rows] = await db.query(query, [id]);
     return rows[0];
   }
 
-  // NOUVEAU: Résumé des totaux (Etablissements, Enseignants) pour la ZAP
   static async getResume(id) {
-    const [etabs] = await db.query('SELECT COUNT(*) as total FROM etablissements WHERE id_zap = ?', [id]);
-    const [enseignants] = await db.query('SELECT COUNT(*) as total FROM enseignants WHERE id_zap = ?', [id]);
+    const [etabs] = await db.query('SELECT COUNT(*) as total FROM etablissement WHERE zap_id = ?', [id]);
+    const [enseignants] = await db.query('SELECT COUNT(*) as total FROM enseignant WHERE zap_id = ?', [id]);
 
     return {
       total_etablissements: etabs[0].total,

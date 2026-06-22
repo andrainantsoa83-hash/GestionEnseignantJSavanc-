@@ -1,35 +1,128 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { MdSearch, MdAdd } from 'react-icons/md';
-import './Cisco.css';
+import { useNavigate } from 'react-router-dom';
+import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload } from 'react-icons/md';
+import './Cisco.css'; // Uses the same CSS for table and modals
 
 const Commune = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [communes, setCommunes] = useState([]);
+  const [ciscos, setCiscos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCommunes = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/commune');
-        if (response.data.success) {
-          setCommunes(response.data.data || []);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des Communes:", error);
-      } finally {
-        setLoading(false);
+  // States pour le formulaire
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ id: null, nom_commune: '', cisco_id: '' });
+
+  const fetchCommunes = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/communes');
+      if (response.data.success) {
+        setCommunes(response.data.data || []);
       }
-    };
+    } catch (error) {
+      console.error("Erreur lors de la récupération des Communes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCiscos = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/ciscos');
+      if (response.data.success) {
+        setCiscos(response.data.data || []);
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  useEffect(() => {
     fetchCommunes();
+    fetchCiscos();
   }, []);
 
-  const filtered = communes.filter(c => 
-    c.nom && c.nom.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleOpenModal = (commune = null) => {
+    if (commune) {
+      setIsEditing(true);
+      setFormData({ 
+        id: commune.id, 
+        nom_commune: commune.nom_commune || commune.nom || '',
+        cisco_id: commune.cisco_id || ''
+      });
+    } else {
+      setIsEditing(false);
+      setFormData({ id: null, nom_commune: '', cisco_id: '' });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({ id: null, nom_commune: '', cisco_id: '' });
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      if (isEditing) {
+        await axios.put(`http://localhost:3000/api/communes/${formData.id}`, formData);
+      } else {
+        await axios.post('http://localhost:3000/api/communes', formData);
+      }
+      handleCloseModal();
+      fetchCommunes();
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      alert("Erreur lors de l'enregistrement");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Voulez-vous vraiment supprimer cette Commune ?")) {
+      try {
+        await axios.delete(`http://localhost:3000/api/communes/${id}`);
+        fetchCommunes();
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert("Erreur lors de la suppression");
+      }
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target.result;
+      try {
+        setLoading(true);
+        const response = await axios.post('http://localhost:3000/api/communes/import', { fileBase64: base64 });
+        alert(response.data.message);
+        fetchCommunes(); // Rafraîchir
+      } catch (error) {
+        console.error("Erreur d'importation", error);
+        alert("Erreur lors de l'importation");
+      } finally {
+        setLoading(false);
+        // Réinitialiser le champ file
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const filtered = communes.filter(c => {
+    const nom = c.nom_commune || c.nom || '';
+    return nom.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   if (loading) {
-    return <div className="page-container"><div className="loading">Chargement des communes...</div></div>;
+    return <div className="page-container"><div className="loading">Chargement...</div></div>;
   }
 
   return (
@@ -37,10 +130,18 @@ const Commune = () => {
       <div className="page-header">
         <h2>Gestion des Communes</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-secondary">
-            Importer Excel
+          {/* Faux bouton qui clique sur le vrai input file */}
+          <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}>
+            <MdUpload size={20} /> Importer Excel
           </button>
-          <button className="btn btn-primary">
+          <input 
+            type="file" 
+            accept=".xlsx, .xls" 
+            ref={fileInputRef} 
+            style={{ display: 'none' }} 
+            onChange={handleFileUpload}
+          />
+          <button className="btn btn-primary" onClick={() => handleOpenModal()}>
             <MdAdd size={20} /> Nouvelle Commune
           </button>
         </div>
@@ -60,47 +161,81 @@ const Commune = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Commune</th>
+              <th>Nom Commune</th>
+              <th>CISCO</th>
               <th>Total Établissements</th>
               <th>Total ZAP</th>
               <th>Total Enseignants</th>
-              <th>Fonctionnaires</th>
-              <th>Contractuels</th>
-              <th>FRAM sub</th>
-              <th>FRAM non sub</th>
-              <th>Autres</th>
               <th>Besoin</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((item) => (
               <tr key={item.id}>
-                <td>{item.nom}</td>
-                <td>{item.totalEtablissements}</td>
-                <td>{item.totalZap}</td>
-                <td>{item.totalEnseignants}</td>
-                <td>{item.fonctionnaires}</td>
-                <td>{item.contractuels}</td>
-                <td>{item.framSub}</td>
-                <td>{item.framNonSub}</td>
-                <td>{item.autres}</td>
-                <td><span className="text-red">{item.besoinRecrutement}</span></td>
+                <td>{item.nom_commune || item.nom}</td>
+                <td>{item.nom_cisco || '-'}</td>
+                <td>{item.total_etablissements || 0}</td>
+                <td>{item.total_zaps || 0}</td>
+                <td>{item.total_enseignants || 0}</td>
+                <td><span className="text-red">{item.besoin_recrutement || 0}</span></td>
+                <td>
+                  <div className="actions">
+                    <button className="btn-action view" onClick={() => navigate(`/commune/${item.id}`)} title="Voir"><MdVisibility /></button>
+                    <button className="btn-action edit" title="Modifier" onClick={() => handleOpenModal(item)}><MdEdit /></button>
+                    <button className="btn-action delete" title="Supprimer" onClick={() => handleDelete(item.id)}><MdDelete /></button>
+                  </div>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr>
-                <td colSpan="10" className="text-center">Aucune commune trouvée.</td>
-              </tr>
+              <tr><td colSpan="7" className="text-center">Aucune commune trouvée.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="pagination">
-        <button className="btn-page" disabled>&lt; Précédent</button>
-        <span className="page-info">Page 1 sur 1</span>
-        <button className="btn-page" disabled>Suivant &gt;</button>
-      </div>
+      {/* MODAL */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>{isEditing ? 'Modifier la Commune' : 'Ajouter une nouvelle Commune'}</h3>
+              <button className="btn-close" onClick={handleCloseModal}><MdClose size={24} /></button>
+            </div>
+            <form onSubmit={handleSave}>
+              <div className="form-group">
+                <label>Nom de la Commune</label>
+                <input 
+                  type="text" 
+                  className="form-control"
+                  required
+                  value={formData.nom_commune}
+                  onChange={(e) => setFormData({...formData, nom_commune: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>CISCO de rattachement</label>
+                <select 
+                  className="form-control"
+                  required
+                  value={formData.cisco_id}
+                  onChange={(e) => setFormData({...formData, cisco_id: e.target.value})}
+                >
+                  <option value="">-- Sélectionner un CISCO --</option>
+                  {ciscos.map(c => (
+                    <option key={c.id} value={c.id}>{c.nom_cisco || c.nom}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Annuler</button>
+                <button type="submit" className="btn btn-primary">{isEditing ? 'Mettre à jour' : 'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

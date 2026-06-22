@@ -3,7 +3,7 @@ const router = express.Router();
 const statsController = require('../controllers/statsController');
 
 // Route globale pour le Dashboard
-router.get('/global', statsController.getGlobalStats);
+router.get('/dashboard', statsController.getGlobalStats);
 
 // Route hiérarchique: Cisco -> Communes
 // GET /api/stats/cisco-commune/1

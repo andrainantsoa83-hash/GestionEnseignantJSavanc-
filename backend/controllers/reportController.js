@@ -11,11 +11,11 @@ exports.generateCiscoReportPdf = async (req, res) => {
     }
 
     // 1. Récupérer le nom du Cisco
-    const [ciscoRows] = await db.query('SELECT nom FROM ciscos WHERE id = ?', [ciscoId]);
+    const [ciscoRows] = await db.query('SELECT nom_cisco FROM cisco WHERE id = ?', [ciscoId]);
     if (ciscoRows.length === 0) {
       return res.status(404).json({ success: false, message: 'Cisco introuvable' });
     }
-    const ciscoName = ciscoRows[0].nom;
+    const ciscoName = ciscoRows[0].nom_cisco;
 
     // 2. Récupérer les statistiques hiérarchiques Cisco -> Communes
     const statsHierarchiques = await Stats.getCiscoCommuneStats(ciscoId);

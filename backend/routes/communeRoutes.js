@@ -4,6 +4,7 @@ const communeController = require('../controllers/communeController');
 
 router.get('/', communeController.getAllCommunes);
 router.post('/', communeController.createCommune);
+router.post('/import', communeController.importExcel);
 router.get('/:id', communeController.getCommuneById);
 router.put('/:id', communeController.updateCommune);
 router.delete('/:id', communeController.deleteCommune);

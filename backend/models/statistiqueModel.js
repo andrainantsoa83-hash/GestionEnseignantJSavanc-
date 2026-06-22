@@ -5,7 +5,7 @@ class Statistique {
   static async getByCisco(ciscoId) {
     const query = `
       SELECT statut, COUNT(*) as total 
-      FROM enseignants 
+      FROM enseignant 
       WHERE id_cisco = ? 
       GROUP BY statut
     `;
@@ -34,7 +34,7 @@ class Statistique {
           SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) -
           SUM(CASE WHEN LOWER(statut) NOT LIKE '%fonctionnaire%' THEN 1 ELSE 0 END)
         ) AS besoin_recrutement
-      FROM enseignants 
+      FROM enseignant 
       WHERE ${column} = ?
     `;
     
