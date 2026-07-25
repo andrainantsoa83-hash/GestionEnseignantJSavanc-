@@ -3,13 +3,27 @@ const db = require('../config/db');
 class Cisco {
   static async findAll(page = 1, limit = 5, search = '') {
     const offset = (page - 1) * limit;
-    let query = 'SELECT * FROM cisco WHERE 1=1';
-    let countQuery = 'SELECT COUNT(*) as total FROM cisco WHERE 1=1';
+    let query = `
+      SELECT 
+        c.*,
+        (SELECT COUNT(*) FROM commune co WHERE co.cisco_id = c.id) AS total_communes,
+        (SELECT COUNT(*) FROM zap z WHERE z.cisco_id = c.id) AS total_zaps,
+        (SELECT COUNT(*) FROM etablissement et WHERE et.cisco_id = c.id) AS total_etablissements,
+        (SELECT COUNT(*) FROM enseignant en WHERE en.cisco_id = c.id) AS total_enseignants,
+        (
+          SELECT 
+            COUNT(*) - COALESCE(SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END), 0)
+          FROM enseignant en WHERE en.cisco_id = c.id
+        ) AS besoin_recrutement
+      FROM cisco c
+      WHERE 1=1
+    `;
+    let countQuery = 'SELECT COUNT(*) as total FROM cisco c WHERE 1=1';
     const params = [];
 
     if (search) {
-      query += ' AND nom_cisco LIKE ?';
-      countQuery += ' AND nom_cisco LIKE ?';
+      query += ' AND c.nom_cisco LIKE ?';
+      countQuery += ' AND c.nom_cisco LIKE ?';
       params.push(`%${search}%`);
     }
 
@@ -56,8 +70,7 @@ class Cisco {
         SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) AS total_fonctionnaires,
         SUM(CASE WHEN LOWER(statut) NOT LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) AS total_autres,
         (
-          SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) -
-          SUM(CASE WHEN LOWER(statut) NOT LIKE '%fonctionnaire%' THEN 1 ELSE 0 END)
+          COUNT(*) - COALESCE(SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END), 0)
         ) AS besoin_recrutement
       FROM enseignant WHERE cisco_id = ?
     `;

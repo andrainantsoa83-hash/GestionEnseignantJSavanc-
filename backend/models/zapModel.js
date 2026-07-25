@@ -4,7 +4,17 @@ class Zap {
   static async findAll(page = 1, limit = 500, search = '', commune_id = null, cisco_id = null) {
     const offset = (page - 1) * limit;
     let query = `
-      SELECT z.*, c.nom_commune, ci.nom_cisco 
+      SELECT 
+        z.*, 
+        c.nom_commune, 
+        ci.nom_cisco,
+        (SELECT COUNT(*) FROM etablissement et WHERE et.zap_id = z.id) AS total_etablissements,
+        (SELECT COUNT(*) FROM enseignant en WHERE en.zap_id = z.id) AS total_enseignants,
+        (
+          SELECT 
+            COUNT(*) - COALESCE(SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END), 0)
+          FROM enseignant en WHERE en.zap_id = z.id
+        ) AS besoin_recrutement
       FROM zap z
       LEFT JOIN commune c ON z.commune_id = c.id
       LEFT JOIN cisco ci ON z.cisco_id = ci.id
@@ -96,8 +106,7 @@ class Zap {
         SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) AS total_fonctionnaires,
         SUM(CASE WHEN LOWER(statut) NOT LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) AS total_autres,
         (
-          SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END) -
-          SUM(CASE WHEN LOWER(statut) NOT LIKE '%fonctionnaire%' THEN 1 ELSE 0 END)
+          COUNT(*) - COALESCE(SUM(CASE WHEN LOWER(statut) LIKE '%fonctionnaire%' THEN 1 ELSE 0 END), 0)
         ) AS besoin_recrutement
       FROM enseignant 
       WHERE zap_id = ?

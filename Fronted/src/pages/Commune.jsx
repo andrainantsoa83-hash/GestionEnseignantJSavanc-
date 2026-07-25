@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload } from 'react-icons/md';
+import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import './Cisco.css'; // Uses the same CSS for table and modals
 
 const Commune = () => {
@@ -11,17 +11,25 @@ const Commune = () => {
   const [communes, setCommunes] = useState([]);
   const [ciscos, setCiscos] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10; // 10 communes par page
 
   // States pour le formulaire
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ id: null, nom_commune: '', cisco_id: '' });
 
-  const fetchCommunes = async () => {
+  const fetchCommunes = async (page = 1) => {
     try {
-      const response = await axios.get('http://localhost:3000/api/communes');
+      // On passe page et limit à l'API
+      const response = await axios.get(`http://localhost:3000/api/communes?page=${page}&limit=${limit}`);
       if (response.data.success) {
         setCommunes(response.data.data || []);
+        setCurrentPage(response.data.page || 1);
+        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des Communes:", error);
@@ -40,9 +48,9 @@ const Commune = () => {
   };
 
   useEffect(() => {
-    fetchCommunes();
+    fetchCommunes(currentPage);
     fetchCiscos();
-  }, []);
+  }, [currentPage]);
 
   const handleOpenModal = (commune = null) => {
     if (commune) {
@@ -73,7 +81,7 @@ const Commune = () => {
         await axios.post('http://localhost:3000/api/communes', formData);
       }
       handleCloseModal();
-      fetchCommunes();
+      fetchCommunes(currentPage);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       alert("Erreur lors de l'enregistrement");
@@ -84,7 +92,7 @@ const Commune = () => {
     if (window.confirm("Voulez-vous vraiment supprimer cette Commune ?")) {
       try {
         await axios.delete(`http://localhost:3000/api/communes/${id}`);
-        fetchCommunes();
+        fetchCommunes(currentPage);
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
         alert("Erreur lors de la suppression");
@@ -103,7 +111,7 @@ const Commune = () => {
         setLoading(true);
         const response = await axios.post('http://localhost:3000/api/communes/import', { fileBase64: base64 });
         alert(response.data.message);
-        fetchCommunes(); // Rafraîchir
+        fetchCommunes(1); // Rafraîchir à la page 1
       } catch (error) {
         console.error("Erreur d'importation", error);
         alert("Erreur lors de l'importation");
@@ -116,10 +124,19 @@ const Commune = () => {
     reader.readAsDataURL(file);
   };
 
+  // Filtrage local en plus de la pagination serveur (si besoin)
   const filtered = communes.filter(c => {
     const nom = c.nom_commune || c.nom || '';
     return nom.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
 
   if (loading) {
     return <div className="page-container"><div className="loading">Chargement...</div></div>;
@@ -189,10 +206,49 @@ const Commune = () => {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan="7" className="text-center">Aucune commune trouvée.</td></tr>
+              <tr><td colSpan="7" className="text-center">Aucune commune trouvée à cette page.</td></tr>
             )}
           </tbody>
         </table>
+        
+        {/* Contrôles de pagination */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderTop: '1px solid #eee' }}>
+          <div style={{ color: '#666', fontSize: '14px' }}>
+            Page {currentPage} sur {totalPages}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={handlePrevPage} 
+              disabled={currentPage === 1}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white', 
+                color: currentPage === 1 ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              <MdChevronLeft size={20} /> Précédent
+            </button>
+            <button 
+              onClick={handleNextPage} 
+              disabled={currentPage >= totalPages}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage >= totalPages ? '#f5f5f5' : 'white', 
+                color: currentPage >= totalPages ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              Suivant <MdChevronRight size={20} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* MODAL */}

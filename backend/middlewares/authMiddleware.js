@@ -26,6 +26,7 @@ exports.verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('Erreur JWT verification:', error.message);
     return res.status(401).json({ success: false, message: 'Token invalide ou expiré.' });
   }
 };

@@ -10,6 +10,7 @@ import ZapDetail from '../pages/ZapDetail';
 import Etablissement from '../pages/Etablissement';
 import Enseignant from '../pages/Enseignant';
 import Utilisateur from '../pages/Utilisateur';
+import Historique from '../pages/Historique';
 import Profil from '../pages/Profil';
 import Login from '../pages/Login';
 
@@ -29,6 +30,7 @@ const AppRoutes = () => {
         <Route path="etablissement" element={<Etablissement />} />
         <Route path="enseignant" element={<Enseignant />} />
         <Route path="utilisateur" element={<Utilisateur />} />
+        <Route path="historique" element={<Historique />} />
         <Route path="profil" element={<Profil />} />
       </Route>
     </Routes>

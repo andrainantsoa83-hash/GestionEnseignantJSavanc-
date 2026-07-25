@@ -16,6 +16,8 @@ router.get('/', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurContro
 router.post('/', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurController.createUtilisateur);
 router.get('/:id', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurController.getUtilisateurById);
 router.put('/:id', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurController.updateUtilisateur);
+router.put('/:id/password', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurController.updatePassword);
+router.put('/:id/statut', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurController.updateStatut);
 router.delete('/:id', verifyToken, authorizeRoles('DIRECTEUR_DREN'), utilisateurController.deleteUtilisateur);
 
 module.exports = router;

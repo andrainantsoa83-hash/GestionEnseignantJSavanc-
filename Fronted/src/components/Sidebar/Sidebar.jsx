@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   MdDashboard, 
   MdBusiness, 
@@ -8,12 +9,19 @@ import {
   MdPerson, 
   MdPeople,
   MdAccountCircle,
-  MdLogout
+  MdLogout,
+  MdSecurity
 } from 'react-icons/md';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen }) => {
   const navigate = useNavigate();
+  const [userRole, setUserRole] = useState('');
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || '');
+  }, []);
   
   const menuItems = [
     { path: '/dashboard', name: 'Dashboard', icon: <MdDashboard /> },
@@ -22,7 +30,11 @@ const Sidebar = ({ isOpen }) => {
     { path: '/zap', name: 'ZAP', icon: <MdMap /> },
     { path: '/etablissement', name: 'Établissement', icon: <MdSchool /> },
     { path: '/enseignant', name: 'Enseignant', icon: <MdPerson /> },
-    { path: '/utilisateur', name: 'Historique', icon: <MdPeople /> },
+    // Affiche Gestion des Utilisateurs uniquement pour les rôles autorisés
+    ...(userRole === 'DIRECTEUR_DREN' || userRole === 'CHEF_SERVICE_PROGRAMMATION' ? [
+      { path: '/utilisateur', name: 'Utilisateurs', icon: <MdSecurity /> }
+    ] : []),
+    { path: '/historique', name: 'Historique', icon: <MdPeople /> },
     { path: '/profil', name: 'Mon Profil', icon: <MdAccountCircle /> }
   ];
 

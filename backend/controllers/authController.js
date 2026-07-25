@@ -4,14 +4,14 @@ const jwt = require('jsonwebtoken');
 
 exports.login = async (req, res) => {
   try {
-    const { nom, password } = req.body;
+    const { code_service, password } = req.body;
 
-    if (!nom || !password) {
-      return res.status(400).json({ success: false, message: 'Nom et mot de passe requis' });
+    if (!code_service || !password) {
+      return res.status(400).json({ success: false, message: 'Code et mot de passe requis' });
     }
 
-    // 1. Chercher l'utilisateur par nom
-    const [rows] = await db.query('SELECT * FROM utilisateur WHERE nom = ?', [nom]);
+    // 1. Chercher l'utilisateur par code_service
+    const [rows] = await db.query('SELECT * FROM utilisateur WHERE code_service = ?', [code_service]);
     
     if (rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Identifiants incorrects' });

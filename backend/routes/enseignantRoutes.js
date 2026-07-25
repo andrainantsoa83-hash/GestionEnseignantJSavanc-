@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const enseignantController = require('../controllers/enseignantController');
 
-// Route GET pour récupérer les enseignants
 router.get('/', enseignantController.getAllEnseignants);
-
-// Route POST pour créer un enseignant
 router.post('/', enseignantController.createEnseignant);
+router.post('/import', enseignantController.importExcel);
+router.get('/:id', enseignantController.getEnseignantById);
+router.put('/:id', enseignantController.updateEnseignant);
+router.delete('/:id', enseignantController.deleteEnseignant);
 
 module.exports = router;

@@ -1,41 +1,83 @@
 const Cisco = require('../models/ciscoModel');
 const xlsx = require('xlsx');
+const db = require('../config/db'); // Utilisation directe du pool pour les transactions
 
 exports.importExcel = async (req, res) => {
+  let connection;
   try {
     const { fileBase64 } = req.body;
     if (!fileBase64) return res.status(400).json({ success: false, message: 'Aucun fichier' });
 
+    // 1. Lire et parser le fichier Excel (ETAPE 1)
     const buffer = Buffer.from(fileBase64.split(',')[1] || fileBase64, 'base64');
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    let successCount = 0;
-    
-    for (const row of data) {
-      const codeCisco = row['code_cisco'] || row['Code Cisco'] || row['code'] || '';
-      const nomCisco = row['nom_cisco'] || row['Nom Cisco'] || row['nom'] || '';
+    // 2. Validation & Nettoyage (ETAPE 2)
+    const validRows = [];
+    for (const row of rawData) {
+      const codeCisco = (row['code_cisco'] || row['Code Cisco'] || row['code'] || '').toString().trim();
+      const nomCisco = (row['nom_cisco'] || row['Nom Cisco'] || row['nom'] || '').toString().trim();
 
-      if (!nomCisco) continue;
-
-      await Cisco.create({
-        nom_cisco: nomCisco,
-        code_cisco: codeCisco
-      });
-      successCount++;
+      if (codeCisco && nomCisco) {
+        validRows.push({ code_cisco: codeCisco, nom_cisco: nomCisco });
+      }
     }
 
-    res.status(200).json({ success: true, message: `${successCount} CISCO importés avec succès !` });
+    if (validRows.length === 0) {
+      return res.status(200).json({ success: true, message: 'Aucune donnée valide trouvée dans le fichier.' });
+    }
+
+    // 3. Déduplication interne Excel (ETAPE 3)
+    const uniqueRows = [];
+    const seenCodes = new Set();
+    for (const row of validRows) {
+      if (!seenCodes.has(row.code_cisco)) {
+        seenCodes.add(row.code_cisco);
+        uniqueRows.push(row);
+      }
+    }
+
+    // 4. Récupérer l'existant en base pour éviter les doublons (ETAPE 4)
+    const [existingRecords] = await db.query('SELECT code_cisco FROM cisco');
+    const existingCodes = new Set(existingRecords.map(r => r.code_cisco));
+
+    // 5. Filtrer uniquement les NOUVELLES données (ETAPE 5)
+    const newDataToInsert = uniqueRows.filter(row => !existingCodes.has(row.code_cisco));
+
+    if (newDataToInsert.length === 0) {
+      return res.status(200).json({ success: true, message: 'Toutes les données du fichier existent déjà dans la base.' });
+    }
+
+    // 6. Bulk Insert avec Transaction (ETAPE 6 & 7 & 8)
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const insertQuery = 'INSERT INTO cisco (code_cisco, nom_cisco) VALUES ?';
+    const valuesParams = newDataToInsert.map(r => [r.code_cisco, r.nom_cisco]);
+
+    await connection.query(insertQuery, [valuesParams]);
+
+    await connection.commit(); // Validation
+
+    res.status(200).json({ 
+      success: true, 
+      message: `${newDataToInsert.length} CISCO importés avec succès ! (${validRows.length - newDataToInsert.length} ignorés car existants)`
+    });
+
   } catch (error) {
-    console.error("Erreur import Excel CISCO:", error);
-    res.status(500).json({ success: false, message: error.message });
+    if (connection) await connection.rollback(); // Annulation en cas d'erreur
+    console.error("Erreur import Excel CISCO (Transaction Annulée):", error);
+    res.status(500).json({ success: false, message: 'Erreur lors de l\'importation. Opération annulée.' });
+  } finally {
+    if (connection) connection.release(); // Libération de la connexion (ETAPE 10)
   }
 };
 
 exports.getAllCiscos = async (req, res) => {
   try {
-    const { page = 1, limit = 500, search } = req.query; // Increase limit to show all
+    const { page = 1, limit = 500, search } = req.query; 
     const result = await Cisco.findAll(page, limit, search);
     res.status(200).json({ success: true, ...result });
   } catch (error) { 

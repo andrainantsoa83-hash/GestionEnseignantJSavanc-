@@ -152,6 +152,11 @@ const Cisco = () => {
             <tr>
               <th>Code Cisco</th>
               <th>Nom Cisco</th>
+              <th>Total Communes</th>
+              <th>Total ZAP</th>
+              <th>Total Établissements</th>
+              <th>Total Enseignants</th>
+              <th>Besoin</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -160,6 +165,11 @@ const Cisco = () => {
               <tr key={cisco.id}>
                 <td>{cisco.code_cisco || cisco.code}</td>
                 <td>{cisco.nom_cisco || cisco.nom}</td>
+                <td>{cisco.total_communes || 0}</td>
+                <td>{cisco.total_zaps || 0}</td>
+                <td>{cisco.total_etablissements || 0}</td>
+                <td>{cisco.total_enseignants || 0}</td>
+                <td><span className="text-red">{cisco.besoin_recrutement || 0}</span></td>
                 <td>
                   <div className="actions">
                     <button 
@@ -189,7 +199,7 @@ const Cisco = () => {
             ))}
             {filteredCiscos.length === 0 && (
               <tr>
-                <td colSpan="3" className="text-center">Aucun Cisco trouvé.</td>
+                <td colSpan="8" className="text-center">Aucun Cisco trouvé.</td>
               </tr>
             )}
           </tbody>

@@ -20,6 +20,7 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.22.5",
     "pdfkit": "^0.19.1",
+    "pdfkit-table": "^0.2.11",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -3,48 +3,95 @@ const db = require('../config/db');
 const xlsx = require('xlsx');
 
 exports.importExcel = async (req, res) => {
+  let connection;
   try {
     const { fileBase64 } = req.body;
     if (!fileBase64) return res.status(400).json({ success: false, message: 'Aucun fichier' });
 
     const buffer = Buffer.from(fileBase64.split(',')[1] || fileBase64, 'base64');
     const workbook = xlsx.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    let successCount = 0;
-    
-    for (const row of data) {
-      const codeEtab = row['code_etab'] || row['Code Etab'] || row['code'] || '';
-      const nomEtab = row['nom_etab'] || row['Nom Etab'] || row['nom'] || '';
-      const typeEtab = row['type'] || row['Type'] || '';
-      const nomZap = row['nom_zap'] || row['Nom Zap'] || row['zap'] || row['Zap'] || '';
-
-      if (!nomEtab || !nomZap) continue;
-
-      // Chercher l'ID de la ZAP correspondante et ses infos parents
-      const [zaps] = await db.query('SELECT id, commune_id, cisco_id FROM zap WHERE nom_zap = ?', [nomZap]);
-      if (zaps.length === 0) continue; 
-
-      const zap_id = zaps[0].id;
-      const commune_id = zaps[0].commune_id;
-      const cisco_id = zaps[0].cisco_id;
-
-      await Etablissement.create({
-        nom_etablissement: nomEtab,
-        code_etablissement: codeEtab,
-        type_etablissement: typeEtab,
-        zap_id: zap_id,
-        commune_id: commune_id,
-        cisco_id: cisco_id
-      });
-      successCount++;
+    let rawData = [];
+    for (const sheetName of workbook.SheetNames) {
+      const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      rawData = rawData.concat(sheetData);
     }
 
-    res.status(200).json({ success: true, message: `${successCount} Établissements importés avec succès !` });
+    const [allZaps] = await db.query('SELECT id, nom_zap, commune_id, cisco_id FROM zap');
+    const zapMap = new Map();
+    for (const z of allZaps) {
+      if (z.nom_zap) zapMap.set(z.nom_zap.trim().toLowerCase(), { id: z.id, commune_id: z.commune_id, cisco_id: z.cisco_id });
+    }
+
+    const validRows = [];
+    for (let row of rawData) {
+      // Normaliser les clés
+      const normalizedRow = {};
+      for (const key in row) {
+        normalizedRow[key.toString().trim().toLowerCase()] = row[key];
+      }
+
+      const codeEtab = (normalizedRow['code_etablissement'] || normalizedRow['code etab'] || normalizedRow['code_etab'] || normalizedRow['code'] || '').toString().trim();
+      const nomEtab = (normalizedRow['nom_etablissement'] || normalizedRow['nom etab'] || normalizedRow['nom_etab'] || normalizedRow['nom'] || '').toString().trim();
+      const typeEtab = (normalizedRow['type_etablissement'] || normalizedRow['type'] || 'Public').toString().trim();
+      const refZap = (normalizedRow['nom_zap'] || normalizedRow['nom zap'] || normalizedRow['zap'] || '').toString().trim().toLowerCase();
+
+      if (!codeEtab || !nomEtab || !refZap) continue;
+
+      const zapData = zapMap.get(refZap);
+      if (!zapData) continue; 
+
+      validRows.push({ 
+        code_etablissement: codeEtab, 
+        nom_etablissement: nomEtab, 
+        type_etablissement: typeEtab,
+        zap_id: zapData.id,
+        commune_id: zapData.commune_id,
+        cisco_id: zapData.cisco_id
+      });
+    }
+
+    if (validRows.length === 0) {
+      return res.status(200).json({ success: true, message: 'Aucune donnée valide trouvée ou ZAP introuvable.' });
+    }
+
+    const uniqueRows = [];
+    const seenCodes = new Set();
+    for (const row of validRows) {
+      if (!seenCodes.has(row.code_etablissement)) {
+        seenCodes.add(row.code_etablissement);
+        uniqueRows.push(row);
+      }
+    }
+
+    const [existingRecords] = await db.query('SELECT code_etablissement FROM etablissement');
+    const existingCodes = new Set(existingRecords.map(r => r.code_etablissement));
+
+    const newDataToInsert = uniqueRows.filter(row => !existingCodes.has(row.code_etablissement));
+
+    if (newDataToInsert.length === 0) {
+      return res.status(200).json({ success: true, message: 'Toutes les données du fichier existent déjà dans la base.' });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const insertQuery = 'INSERT INTO etablissement (code_etablissement, nom_etablissement, type_etablissement, zap_id, commune_id, cisco_id) VALUES ?';
+    const valuesParams = newDataToInsert.map(r => [r.code_etablissement, r.nom_etablissement, r.type_etablissement, r.zap_id, r.commune_id, r.cisco_id]);
+
+    await connection.query(insertQuery, [valuesParams]);
+    await connection.commit();
+
+    res.status(200).json({ 
+      success: true, 
+      message: `${newDataToInsert.length} Établissements importés avec succès ! (${validRows.length - newDataToInsert.length} ignorés)` 
+    });
+
   } catch (error) {
-    console.error("Erreur import Excel Etablissement:", error);
-    res.status(500).json({ success: false, message: error.message });
+    if (connection) await connection.rollback();
+    console.error("Erreur import Excel Etab:", error);
+    res.status(500).json({ success: false, message: 'Erreur lors de l\'importation. Opération annulée.' });
+  } finally {
+    if (connection) connection.release();
   }
 };
 

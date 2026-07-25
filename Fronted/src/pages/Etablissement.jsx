@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload } from 'react-icons/md';
+import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import Select from 'react-select';
 import './Cisco.css';
 
 const Etablissement = () => {
@@ -12,14 +13,23 @@ const Etablissement = () => {
   const [zaps, setZaps] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ id: null, code_etablissement: '', nom_etablissement: '', type_etablissement: '', zap_id: '', commune_id: '', cisco_id: '' });
+  const [formData, setFormData] = useState({ id: null, code_etablissement: '', nom_etablissement: '', type_etablissement: 'Public', zap_id: '', commune_id: '', cisco_id: '' });
 
-  const fetchEtablissements = async () => {
+  const fetchEtablissements = async (page = 1) => {
     try {
-      const response = await axios.get('http://localhost:3000/api/etablissements');
-      if (response.data.success) setEtablissements(response.data.data || []);
+      const response = await axios.get(`http://localhost:3000/api/etablissements?page=${page}&limit=${limit}`);
+      if (response.data.success) {
+        setEtablissements(response.data.data || []);
+        setCurrentPage(response.data.page || 1);
+        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -29,15 +39,17 @@ const Etablissement = () => {
 
   const fetchZaps = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/zaps');
+      // limit=10000 pour charger toutes les ZAPs dans le menu déroulant
+      const res = await axios.get('http://localhost:3000/api/zaps?limit=10000');
       if (res.data.success) setZaps(res.data.data || []);
     } catch (error) { console.error(error); }
   };
 
   useEffect(() => {
-    fetchEtablissements();
+    fetchEtablissements(currentPage);
     fetchZaps();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const handleOpenModal = (item = null) => {
     if (item) {
@@ -80,7 +92,7 @@ const Etablissement = () => {
         await axios.post('http://localhost:3000/api/etablissements', finalFormData);
       }
       handleCloseModal();
-      fetchEtablissements();
+      fetchEtablissements(currentPage);
     } catch (error) {
       console.error(error);
       alert("Erreur");
@@ -91,7 +103,7 @@ const Etablissement = () => {
     if (window.confirm("Voulez-vous vraiment supprimer ?")) {
       try {
         await axios.delete(`http://localhost:3000/api/etablissements/${id}`);
-        fetchEtablissements();
+        fetchEtablissements(currentPage);
       } catch (error) {
         alert("Erreur");
       }
@@ -109,7 +121,7 @@ const Etablissement = () => {
         setLoading(true);
         const response = await axios.post('http://localhost:3000/api/etablissements/import', { fileBase64: base64 });
         alert(response.data.message);
-        fetchEtablissements();
+        fetchEtablissements(1);
       } catch (error) {
         console.error("Erreur d'importation", error);
         alert("Erreur lors de l'importation");
@@ -171,6 +183,8 @@ const Etablissement = () => {
               <th>ZAP</th>
               <th>Commune</th>
               <th>CISCO</th>
+              <th>Total Enseignants</th>
+              <th>Besoin</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -183,6 +197,8 @@ const Etablissement = () => {
                 <td>{item.nom_zap || '-'}</td>
                 <td>{item.nom_commune || '-'}</td>
                 <td>{item.nom_cisco || '-'}</td>
+                <td>{item.total_enseignants || 0}</td>
+                <td><span className="text-red">{item.besoin_recrutement || 0}</span></td>
                 <td>
                   <div className="actions">
                     <button className="btn-action view" onClick={() => navigate(`/etablissement/${item.id}`)} title="Voir"><MdVisibility /></button>
@@ -193,10 +209,49 @@ const Etablissement = () => {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan="7" className="text-center">Aucun établissement.</td></tr>
+              <tr><td colSpan="9" className="text-center">Aucun établissement.</td></tr>
             )}
           </tbody>
         </table>
+        
+        {/* Contrôles de pagination */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderTop: '1px solid #eee' }}>
+          <div style={{ color: '#666', fontSize: '14px' }}>
+            Page {currentPage} sur {totalPages}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => { if(currentPage > 1) setCurrentPage(currentPage - 1); }} 
+              disabled={currentPage === 1}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white', 
+                color: currentPage === 1 ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              <MdChevronLeft size={20} /> Précédent
+            </button>
+            <button 
+              onClick={() => { if(currentPage < totalPages) setCurrentPage(currentPage + 1); }} 
+              disabled={currentPage >= totalPages}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage >= totalPages ? '#f5f5f5' : 'white', 
+                color: currentPage >= totalPages ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              Suivant <MdChevronRight size={20} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* MODAL */}
@@ -224,11 +279,17 @@ const Etablissement = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>ZAP</label>
-                <select className="form-control" required value={formData.zap_id} onChange={(e) => setFormData({...formData, zap_id: e.target.value})}>
-                  <option value="">-- ZAP --</option>
-                  {zaps.map(z => <option key={z.id} value={z.id}>{z.nom_zap || z.nom}</option>)}
-                </select>
+                <label>ZAP de rattachement</label>
+                <Select 
+                  options={zaps.map(z => ({ value: z.id, label: z.nom_zap || z.nom }))}
+                  value={formData.zap_id ? { value: formData.zap_id, label: zaps.find(z => z.id === parseInt(formData.zap_id))?.nom_zap || zaps.find(z => z.id === parseInt(formData.zap_id))?.nom } : null}
+                  onChange={(selectedOption) => {
+                    setFormData({...formData, zap_id: selectedOption ? selectedOption.value : ''});
+                  }}
+                  placeholder="Rechercher une ZAP..."
+                  isClearable
+                  required={!formData.zap_id}
+                />
               </div>
               <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Annuler</button>

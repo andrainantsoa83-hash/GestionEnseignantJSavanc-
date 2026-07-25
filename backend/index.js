@@ -1,12 +1,34 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
-require('./config/db');
+const db = require('./config/db');
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+
+// Initialisation de la base de données
+const initDB = async () => {
+  try {
+    const [rows] = await db.query('SELECT COUNT(*) as count FROM utilisateur');
+    if (rows[0].count === 0) {
+      console.log('Aucun utilisateur trouvé. Création de l\'administrateur par défaut...');
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash('Admin@123', salt);
+      
+      await db.query(
+        'INSERT INTO utilisateur (nom, role, code_service, password_hash) VALUES (?, ?, ?, ?)',
+        ['Administrateur DREN', 'DIRECTEUR_DREN', 'ADMIN001', password_hash]
+      );
+      console.log('Administrateur DREN créé avec succès (ADMIN001 / Admin@123).');
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation de la DB:', error);
+  }
+};
+initDB();
 
 // Importation des routes
 const enseignantRoutes = require('./routes/enseignantRoutes');

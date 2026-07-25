@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
-import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload } from 'react-icons/md';
+import { MdSearch, MdAdd, MdVisibility, MdEdit, MdDelete, MdClose, MdUpload, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import './Cisco.css'; 
 
 const Zap = () => {
@@ -13,16 +14,23 @@ const Zap = () => {
   const [ciscos, setCiscos] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+
   // States pour le formulaire
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ id: null, nom_zap: '', code_zap: '', commune_id: '', cisco_id: '' });
 
-  const fetchZaps = async () => {
+  const fetchZaps = async (page = 1) => {
     try {
-      const response = await axios.get('http://localhost:3000/api/zaps');
+      const response = await axios.get(`http://localhost:3000/api/zaps?page=${page}&limit=${limit}`);
       if (response.data.success) {
         setZaps(response.data.data || []);
+        setCurrentPage(response.data.page || 1);
+        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
       }
     } catch (error) {
       console.error(error);
@@ -34,8 +42,8 @@ const Zap = () => {
   const fetchCommunesAndCiscos = async () => {
     try {
       const [resCommunes, resCiscos] = await Promise.all([
-        axios.get('http://localhost:3000/api/communes'),
-        axios.get('http://localhost:3000/api/ciscos')
+        axios.get('http://localhost:3000/api/communes?limit=10000'),
+        axios.get('http://localhost:3000/api/ciscos?limit=10000')
       ]);
       if (resCommunes.data.success) setCommunes(resCommunes.data.data || []);
       if (resCiscos.data.success) setCiscos(resCiscos.data.data || []);
@@ -45,10 +53,10 @@ const Zap = () => {
   };
 
   useEffect(() => {
-    fetchZaps();
+    fetchZaps(currentPage);
     fetchCommunesAndCiscos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentPage]);
 
   const handleOpenModal = (zap = null) => {
     if (zap) {
@@ -180,6 +188,9 @@ const Zap = () => {
               <th>Nom ZAP</th>
               <th>Commune</th>
               <th>CISCO</th>
+              <th>Total Établissements</th>
+              <th>Total Enseignants</th>
+              <th>Besoin</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -190,6 +201,9 @@ const Zap = () => {
                 <td>{item.nom_zap || item.nom}</td>
                 <td>{item.nom_commune || '-'}</td>
                 <td>{item.nom_cisco || '-'}</td>
+                <td>{item.total_etablissements || 0}</td>
+                <td>{item.total_enseignants || 0}</td>
+                <td><span className="text-red">{item.besoin_recrutement || 0}</span></td>
                 <td>
                   <div className="actions">
                     <button className="btn-action view" onClick={() => navigate(`/zap/${item.id}`)} title="Voir"><MdVisibility /></button>
@@ -200,10 +214,49 @@ const Zap = () => {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan="5" className="text-center">Aucune ZAP trouvée.</td></tr>
+              <tr><td colSpan="8" className="text-center">Aucune ZAP trouvée.</td></tr>
             )}
           </tbody>
         </table>
+        
+        {/* Contrôles de pagination */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderTop: '1px solid #eee' }}>
+          <div style={{ color: '#666', fontSize: '14px' }}>
+            Page {currentPage} sur {totalPages}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => { if(currentPage > 1) setCurrentPage(currentPage - 1); }} 
+              disabled={currentPage === 1}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white', 
+                color: currentPage === 1 ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              <MdChevronLeft size={20} /> Précédent
+            </button>
+            <button 
+              onClick={() => { if(currentPage < totalPages) setCurrentPage(currentPage + 1); }} 
+              disabled={currentPage >= totalPages}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage >= totalPages ? '#f5f5f5' : 'white', 
+                color: currentPage >= totalPages ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              Suivant <MdChevronRight size={20} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* MODAL */}
@@ -237,12 +290,11 @@ const Zap = () => {
               </div>
               <div className="form-group">
                 <label>Commune de rattachement</label>
-                <select 
-                  className="form-control"
-                  required
-                  value={formData.commune_id}
-                  onChange={(e) => {
-                    const c_id = e.target.value;
+                <Select 
+                  options={communes.map(c => ({ value: c.id, label: c.nom_commune || c.nom }))}
+                  value={formData.commune_id ? { value: formData.commune_id, label: communes.find(c => c.id === parseInt(formData.commune_id))?.nom_commune || communes.find(c => c.id === parseInt(formData.commune_id))?.nom } : null}
+                  onChange={(selectedOption) => {
+                    const c_id = selectedOption ? selectedOption.value : '';
                     const comm = communes.find(c => c.id === parseInt(c_id));
                     setFormData({
                       ...formData, 
@@ -250,26 +302,23 @@ const Zap = () => {
                       cisco_id: comm ? comm.cisco_id : formData.cisco_id
                     });
                   }}
-                >
-                  <option value="">-- Sélectionner une Commune --</option>
-                  {communes.map(c => (
-                    <option key={c.id} value={c.id}>{c.nom_commune || c.nom}</option>
-                  ))}
-                </select>
+                  placeholder="Rechercher une Commune..."
+                  isClearable
+                  required={!formData.commune_id}
+                />
               </div>
               <div className="form-group">
                 <label>CISCO</label>
-                <select 
-                  className="form-control"
-                  required
-                  value={formData.cisco_id}
-                  onChange={(e) => setFormData({...formData, cisco_id: e.target.value})}
-                >
-                  <option value="">-- Sélectionner un CISCO --</option>
-                  {ciscos.map(c => (
-                    <option key={c.id} value={c.id}>{c.nom_cisco || c.nom}</option>
-                  ))}
-                </select>
+                <Select 
+                  options={ciscos.map(c => ({ value: c.id, label: c.nom_cisco || c.nom }))}
+                  value={formData.cisco_id ? { value: formData.cisco_id, label: ciscos.find(c => c.id === parseInt(formData.cisco_id))?.nom_cisco || ciscos.find(c => c.id === parseInt(formData.cisco_id))?.nom } : null}
+                  onChange={(selectedOption) => {
+                    setFormData({...formData, cisco_id: selectedOption ? selectedOption.value : ''});
+                  }}
+                  placeholder="Rechercher un CISCO..."
+                  isClearable
+                  required={!formData.cisco_id}
+                />
               </div>
               <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Annuler</button>

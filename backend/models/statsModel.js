@@ -37,7 +37,7 @@ class Stats {
     const total = Number(result.totalGeneral) || 0;
 
     const totalAutresStatuts = fram_sub + fram_non_sub + contractuel + autres;
-    const besoin_recrutement = fonctionnaire - totalAutresStatuts;
+    const besoin_recrutement = total - fonctionnaire;
 
     // Construit l'objet de retour dynamique (ex: cisco_id: 1 ou commune_id: 5)
     const returnObj = {
@@ -90,7 +90,7 @@ class Stats {
       const total = Number(row.totalGeneral) || 0;
 
       const totalAutresStatuts = fram_sub + fram_non_sub + contractuel + autres;
-      const besoin_recrutement = fonctionnaire - totalAutresStatuts;
+      const besoin_recrutement = total - fonctionnaire;
 
       return {
         nom_commune: row.nom_commune,
@@ -137,7 +137,7 @@ class Stats {
     const totalEnseignants = Number(stats.total) || 0;
 
     const totalAutresStatuts = fram_sub + fram_non_sub + contractuel + autres;
-    const besoinRecrutement = fonctionnaire - totalAutresStatuts;
+    const besoinRecrutement = totalEnseignants - fonctionnaire;
 
     // Repartition par CISCO
     const [zoneData] = await db.query(`
@@ -189,7 +189,7 @@ class Stats {
     const total_enseignants = Number(result.totalGeneral) || 0;
 
     const totalAutresStatuts = fram_sub + fram_non_sub + contractuel + autres;
-    const besoin_recrutement = fonctionnaire - totalAutresStatuts;
+    const besoin_recrutement = total - fonctionnaire;
 
     const [ciscos] = await db.query('SELECT COUNT(*) as total FROM cisco');
     const [communes] = await db.query('SELECT COUNT(*) as total FROM commune');

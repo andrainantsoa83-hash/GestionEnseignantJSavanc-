@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { MdSearch, MdAdd, MdEdit, MdDelete, MdClose, MdUpload } from 'react-icons/md';
+import { MdSearch, MdAdd, MdEdit, MdDelete, MdClose, MdUpload, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import Select from 'react-select';
 import './Cisco.css';
 
 const Enseignant = () => {
@@ -9,6 +10,11 @@ const Enseignant = () => {
   const [enseignants, setEnseignants] = useState([]);
   const [etablissements, setEtablissements] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -24,10 +30,14 @@ const Enseignant = () => {
     cisco_id: ''
   });
 
-  const fetchEnseignants = async () => {
+  const fetchEnseignants = async (page = 1) => {
     try {
-      const response = await axios.get('http://localhost:3000/api/enseignants');
-      if (response.data.success) setEnseignants(response.data.data || []);
+      const response = await axios.get(`http://localhost:3000/api/enseignants?page=${page}&limit=${limit}`);
+      if (response.data.success) {
+        setEnseignants(response.data.data || []);
+        setCurrentPage(response.data.page || 1);
+        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -37,7 +47,7 @@ const Enseignant = () => {
 
   const fetchEtablissements = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/etablissements');
+      const res = await axios.get('http://localhost:3000/api/etablissements?limit=10000');
       if (res.data.success) setEtablissements(res.data.data || []);
     } catch (error) {
       console.error(error);
@@ -45,9 +55,10 @@ const Enseignant = () => {
   };
 
   useEffect(() => {
-    fetchEnseignants();
+    fetchEnseignants(currentPage);
     fetchEtablissements();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const handleOpenModal = (item = null) => {
     if (item) {
@@ -103,7 +114,7 @@ const Enseignant = () => {
         await axios.post('http://localhost:3000/api/enseignants', finalFormData);
       }
       handleCloseModal();
-      fetchEnseignants();
+      fetchEnseignants(currentPage);
     } catch (error) {
       console.error(error);
       alert("Erreur");
@@ -114,7 +125,7 @@ const Enseignant = () => {
     if (window.confirm("Voulez-vous vraiment supprimer cet enseignant ?")) {
       try {
         await axios.delete(`http://localhost:3000/api/enseignants/${id}`);
-        fetchEnseignants();
+        fetchEnseignants(currentPage);
       } catch (error) {
         alert("Erreur");
       }
@@ -132,7 +143,7 @@ const Enseignant = () => {
         setLoading(true);
         const response = await axios.post('http://localhost:3000/api/enseignants/import', { fileBase64: base64 });
         alert(response.data.message);
-        fetchEnseignants();
+        fetchEnseignants(1);
       } catch (error) {
         console.error("Erreur d'importation", error);
         alert("Erreur lors de l'importation");
@@ -223,6 +234,45 @@ const Enseignant = () => {
             )}
           </tbody>
         </table>
+
+        {/* Contrôles de pagination */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderTop: '1px solid #eee' }}>
+          <div style={{ color: '#666', fontSize: '14px' }}>
+            Page {currentPage} sur {totalPages}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => { if(currentPage > 1) setCurrentPage(currentPage - 1); }} 
+              disabled={currentPage === 1}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white', 
+                color: currentPage === 1 ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              <MdChevronLeft size={20} /> Précédent
+            </button>
+            <button 
+              onClick={() => { if(currentPage < totalPages) setCurrentPage(currentPage + 1); }} 
+              disabled={currentPage >= totalPages}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ddd', 
+                backgroundColor: currentPage >= totalPages ? '#f5f5f5' : 'white', 
+                color: currentPage >= totalPages ? '#aaa' : '#333', 
+                borderRadius: '4px', 
+                cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              Suivant <MdChevronRight size={20} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* MODAL */}
@@ -261,10 +311,16 @@ const Enseignant = () => {
               </div>
               <div className="form-group">
                 <label>Établissement</label>
-                <select className="form-control" required value={formData.etablissement_id} onChange={(e) => setFormData({...formData, etablissement_id: e.target.value})}>
-                  <option value="">-- Établissement --</option>
-                  {etablissements.map(et => <option key={et.id} value={et.id}>{et.nom_etablissement || et.nom}</option>)}
-                </select>
+                <Select 
+                  options={etablissements.map(et => ({ value: et.id, label: et.nom_etablissement || et.nom }))}
+                  value={formData.etablissement_id ? { value: formData.etablissement_id, label: etablissements.find(et => et.id === parseInt(formData.etablissement_id))?.nom_etablissement || etablissements.find(et => et.id === parseInt(formData.etablissement_id))?.nom } : null}
+                  onChange={(selectedOption) => {
+                    setFormData({...formData, etablissement_id: selectedOption ? selectedOption.value : ''});
+                  }}
+                  placeholder="Rechercher un établissement..."
+                  isClearable
+                  required={!formData.etablissement_id}
+                />
               </div>
               <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Annuler</button>
