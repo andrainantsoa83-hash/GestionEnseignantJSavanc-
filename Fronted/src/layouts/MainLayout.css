@@ -25,8 +25,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #1e293b;
-  z-index: 5;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
 }
 
 @media (max-width: 768px) {

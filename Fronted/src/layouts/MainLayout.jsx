@@ -13,7 +13,7 @@ const MainLayout = () => {
 
   return (
     <div className="app-container">
-      <Sidebar isOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <div className="main-wrapper">
         <Navbar toggleSidebar={toggleSidebar} />
         <main className="main-content">

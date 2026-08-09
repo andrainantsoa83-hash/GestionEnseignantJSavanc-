@@ -14,7 +14,7 @@ import {
 } from 'react-icons/md';
 import './Sidebar.css';
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState('');
 
@@ -42,6 +42,12 @@ const Sidebar = ({ isOpen }) => {
     navigate('/login');
   };
 
+  const handleLinkClick = () => {
+    if (window.innerWidth <= 768 && isOpen) {
+      toggleSidebar();
+    }
+  };
+
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
@@ -54,6 +60,7 @@ const Sidebar = ({ isOpen }) => {
               <NavLink 
                 to={item.path} 
                 className={({ isActive }) => isActive ? 'active' : ''}
+                onClick={handleLinkClick}
               >
                 <span className="icon">{item.icon}</span>
                 <span className="text">{item.name}</span>
