@@ -25,7 +25,7 @@ const Commune = () => {
   const fetchCommunes = async (page = 1) => {
     try {
       // On passe page et limit à l'API
-      const response = await axios.get(`http://localhost:3000/api/communes?page=${page}&limit=${limit}`);
+      const response = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/communes?page=${page}&limit=${limit}`);
       if (response.data.success) {
         setCommunes(response.data.data || []);
         setCurrentPage(response.data.page || 1);
@@ -40,7 +40,7 @@ const Commune = () => {
 
   const fetchCiscos = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/ciscos');
+      const response = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/ciscos');
       if (response.data.success) {
         setCiscos(response.data.data || []);
       }
@@ -76,9 +76,9 @@ const Commune = () => {
     e.preventDefault();
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:3000/api/communes/${formData.id}`, formData);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/communes/${formData.id}`, formData);
       } else {
-        await axios.post('http://localhost:3000/api/communes', formData);
+        await axios.post('https://gestionenseignantjsavanc.onrender.com/api/communes', formData);
       }
       handleCloseModal();
       fetchCommunes(currentPage);
@@ -91,7 +91,7 @@ const Commune = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Voulez-vous vraiment supprimer cette Commune ?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/communes/${id}`);
+        await axios.delete(`https://gestionenseignantjsavanc.onrender.com/api/communes/${id}`);
         fetchCommunes(currentPage);
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
@@ -109,7 +109,7 @@ const Commune = () => {
       const base64 = event.target.result;
       try {
         setLoading(true);
-        const response = await axios.post('http://localhost:3000/api/communes/import', { fileBase64: base64 });
+        const response = await axios.post('https://gestionenseignantjsavanc.onrender.com/api/communes/import', { fileBase64: base64 });
         alert(response.data.message);
         fetchCommunes(1); // Rafraîchir à la page 1
       } catch (error) {

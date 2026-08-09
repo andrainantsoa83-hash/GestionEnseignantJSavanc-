@@ -32,7 +32,7 @@ const Enseignant = () => {
 
   const fetchEnseignants = async (page = 1) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/enseignants?page=${page}&limit=${limit}`);
+      const response = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/enseignants?page=${page}&limit=${limit}`);
       if (response.data.success) {
         setEnseignants(response.data.data || []);
         setCurrentPage(response.data.page || 1);
@@ -47,7 +47,7 @@ const Enseignant = () => {
 
   const fetchEtablissements = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/etablissements?limit=10000');
+      const res = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/etablissements?limit=10000');
       if (res.data.success) setEtablissements(res.data.data || []);
     } catch (error) {
       console.error(error);
@@ -109,9 +109,9 @@ const Enseignant = () => {
       }
 
       if (isEditing) {
-        await axios.put(`http://localhost:3000/api/enseignants/${formData.id}`, finalFormData);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/enseignants/${formData.id}`, finalFormData);
       } else {
-        await axios.post('http://localhost:3000/api/enseignants', finalFormData);
+        await axios.post('https://gestionenseignantjsavanc.onrender.com/api/enseignants', finalFormData);
       }
       handleCloseModal();
       fetchEnseignants(currentPage);
@@ -124,7 +124,7 @@ const Enseignant = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Voulez-vous vraiment supprimer cet enseignant ?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/enseignants/${id}`);
+        await axios.delete(`https://gestionenseignantjsavanc.onrender.com/api/enseignants/${id}`);
         fetchEnseignants(currentPage);
       } catch (error) {
         alert("Erreur");
@@ -141,7 +141,7 @@ const Enseignant = () => {
       const base64 = event.target.result;
       try {
         setLoading(true);
-        const response = await axios.post('http://localhost:3000/api/enseignants/import', { fileBase64: base64 });
+        const response = await axios.post('https://gestionenseignantjsavanc.onrender.com/api/enseignants/import', { fileBase64: base64 });
         alert(response.data.message);
         fetchEnseignants(1);
       } catch (error) {

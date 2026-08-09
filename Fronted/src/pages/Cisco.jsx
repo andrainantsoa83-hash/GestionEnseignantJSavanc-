@@ -18,7 +18,7 @@ const Cisco = () => {
 
   const fetchCiscos = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/ciscos');
+      const response = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/ciscos');
       if (response.data.success) {
         setCiscos(response.data.data || []);
       }
@@ -57,9 +57,9 @@ const Cisco = () => {
     e.preventDefault();
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:3000/api/ciscos/${formData.id}`, formData);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/ciscos/${formData.id}`, formData);
       } else {
-        await axios.post('http://localhost:3000/api/ciscos', formData);
+        await axios.post('https://gestionenseignantjsavanc.onrender.com/api/ciscos', formData);
       }
       handleCloseModal();
       fetchCiscos(); // Rafraîchir la liste
@@ -72,7 +72,7 @@ const Cisco = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Voulez-vous vraiment supprimer ce CISCO ?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/ciscos/${id}`);
+        await axios.delete(`https://gestionenseignantjsavanc.onrender.com/api/ciscos/${id}`);
         fetchCiscos(); // Rafraîchir la liste
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
@@ -90,7 +90,7 @@ const Cisco = () => {
       const base64 = event.target.result;
       try {
         setLoading(true);
-        const response = await axios.post('http://localhost:3000/api/ciscos/import', { fileBase64: base64 });
+        const response = await axios.post('https://gestionenseignantjsavanc.onrender.com/api/ciscos/import', { fileBase64: base64 });
         alert(response.data.message);
         fetchCiscos();
       } catch (error) {

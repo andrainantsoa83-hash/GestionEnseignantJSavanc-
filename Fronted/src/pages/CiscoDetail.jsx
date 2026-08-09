@@ -19,16 +19,16 @@ const CiscoDetail = () => {
       try {
         setLoading(true);
         // 1. Infos du Cisco
-        const resCisco = await axios.get(`http://localhost:3000/api/ciscos/${id}`);
+        const resCisco = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/ciscos/${id}`);
         if (resCisco.data.success) {
           setCisco(resCisco.data.data);
         }
 
         // 2. Résumé Global du Cisco (Communes, ZAP, Etablissements, Enseignants)
-        const resResume = await axios.get(`http://localhost:3000/api/ciscos/${id}/resume`);
+        const resResume = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/ciscos/${id}/resume`);
         
         // 3. Besoin de recrutement total du Cisco
-        const resBesoin = await axios.get(`http://localhost:3000/api/ciscos/recrutement/${id}`);
+        const resBesoin = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/ciscos/recrutement/${id}`);
         
         setStats({
           communes: resResume.data?.data?.total_communes || 0,
@@ -39,7 +39,7 @@ const CiscoDetail = () => {
         });
 
         // 4. Statistiques des communes du Cisco
-        const resCommunesStats = await axios.get(`http://localhost:3000/api/stats/cisco-commune/${id}`);
+        const resCommunesStats = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/stats/cisco-commune/${id}`);
         if (resCommunesStats.data && resCommunesStats.data.communes) {
           setCommunesStats(resCommunesStats.data.communes);
         }
@@ -56,7 +56,7 @@ const CiscoDetail = () => {
   const handleDownloadPDF = async () => {
     try {
       // Ouvre l'URL du PDF dans un nouvel onglet, le navigateur gérera le téléchargement
-      window.open(`http://localhost:3000/api/report/cisco/${id}/pdf`, '_blank');
+      window.open(`https://gestionenseignantjsavanc.onrender.com/api/report/cisco/${id}/pdf`, '_blank');
     } catch (error) {
       console.error("Erreur lors du téléchargement du PDF:", error);
       alert("Erreur lors de la génération du rapport PDF.");

@@ -39,7 +39,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/stats/dashboard');
+        const response = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/stats/dashboard');
         if (response.data.success) {
           setStats(response.data.data.stats);
           setStatutData(response.data.data.statutData);

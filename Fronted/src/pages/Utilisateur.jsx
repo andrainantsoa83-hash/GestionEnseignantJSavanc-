@@ -32,7 +32,7 @@ const Utilisateur = () => {
     try {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const res = await axios.get('http://localhost:3000/api/utilisateurs', config);
+      const res = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/utilisateurs', config);
       if (res.data.success) setUtilisateurs(res.data.data || []);
     } catch (error) {
       console.error(error);
@@ -43,7 +43,7 @@ const Utilisateur = () => {
 
   const fetchCiscos = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/ciscos');
+      const res = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/ciscos');
       if (res.data.success) setCiscos(res.data.data || []);
     } catch (error) {
       console.error(error);
@@ -111,14 +111,14 @@ const Utilisateur = () => {
 
       if (isEditing) {
         if (!payload.password) delete payload.password; 
-        await axios.put(`http://localhost:3000/api/utilisateurs/${formData.id}`, payload, config);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/utilisateurs/${formData.id}`, payload, config);
         
         // If password is provided during edit, we update it specifically
         if (payload.password) {
-          await axios.put(`http://localhost:3000/api/utilisateurs/${formData.id}/password`, { password: payload.password }, config);
+          await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/utilisateurs/${formData.id}/password`, { password: payload.password }, config);
         }
       } else {
-        await axios.post('http://localhost:3000/api/utilisateurs', payload, config);
+        await axios.post('https://gestionenseignantjsavanc.onrender.com/api/utilisateurs', payload, config);
       }
       setIsModalOpen(false);
       fetchUtilisateurs();
@@ -132,7 +132,7 @@ const Utilisateur = () => {
       try {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        await axios.delete(`http://localhost:3000/api/utilisateurs/${id}`, config);
+        await axios.delete(`https://gestionenseignantjsavanc.onrender.com/api/utilisateurs/${id}`, config);
         fetchUtilisateurs();
       } catch (error) {
         alert("Erreur lors de la suppression.");
@@ -146,7 +146,7 @@ const Utilisateur = () => {
       try {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        await axios.put(`http://localhost:3000/api/utilisateurs/${id}/statut`, { statut: newStatus }, config);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/utilisateurs/${id}/statut`, { statut: newStatus }, config);
         fetchUtilisateurs();
       } catch (error) {
         alert("Erreur lors du changement de statut.");

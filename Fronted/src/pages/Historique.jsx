@@ -14,7 +14,7 @@ const Historique = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         // Si l'auth n'est pas encore stricte dans le backend, on appelle simplement l'API
-        const res = await axios.get('http://localhost:3000/api/utilisateurs/logs', config);
+        const res = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/utilisateurs/logs', config);
         if (res.data.success) {
           setLogs(res.data.data || []);
         }

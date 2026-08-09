@@ -24,7 +24,7 @@ const Etablissement = () => {
 
   const fetchEtablissements = async (page = 1) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/etablissements?page=${page}&limit=${limit}`);
+      const response = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/etablissements?page=${page}&limit=${limit}`);
       if (response.data.success) {
         setEtablissements(response.data.data || []);
         setCurrentPage(response.data.page || 1);
@@ -40,7 +40,7 @@ const Etablissement = () => {
   const fetchZaps = async () => {
     try {
       // limit=10000 pour charger toutes les ZAPs dans le menu déroulant
-      const res = await axios.get('http://localhost:3000/api/zaps?limit=10000');
+      const res = await axios.get('https://gestionenseignantjsavanc.onrender.com/api/zaps?limit=10000');
       if (res.data.success) setZaps(res.data.data || []);
     } catch (error) { console.error(error); }
   };
@@ -87,9 +87,9 @@ const Etablissement = () => {
       }
 
       if (isEditing) {
-        await axios.put(`http://localhost:3000/api/etablissements/${formData.id}`, finalFormData);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/etablissements/${formData.id}`, finalFormData);
       } else {
-        await axios.post('http://localhost:3000/api/etablissements', finalFormData);
+        await axios.post('https://gestionenseignantjsavanc.onrender.com/api/etablissements', finalFormData);
       }
       handleCloseModal();
       fetchEtablissements(currentPage);
@@ -102,7 +102,7 @@ const Etablissement = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Voulez-vous vraiment supprimer ?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/etablissements/${id}`);
+        await axios.delete(`https://gestionenseignantjsavanc.onrender.com/api/etablissements/${id}`);
         fetchEtablissements(currentPage);
       } catch (error) {
         alert("Erreur");
@@ -119,7 +119,7 @@ const Etablissement = () => {
       const base64 = event.target.result;
       try {
         setLoading(true);
-        const response = await axios.post('http://localhost:3000/api/etablissements/import', { fileBase64: base64 });
+        const response = await axios.post('https://gestionenseignantjsavanc.onrender.com/api/etablissements/import', { fileBase64: base64 });
         alert(response.data.message);
         fetchEtablissements(1);
       } catch (error) {

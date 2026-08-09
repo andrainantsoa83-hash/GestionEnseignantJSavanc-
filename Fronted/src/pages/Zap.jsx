@@ -26,7 +26,7 @@ const Zap = () => {
 
   const fetchZaps = async (page = 1) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/zaps?page=${page}&limit=${limit}`);
+      const response = await axios.get(`https://gestionenseignantjsavanc.onrender.com/api/zaps?page=${page}&limit=${limit}`);
       if (response.data.success) {
         setZaps(response.data.data || []);
         setCurrentPage(response.data.page || 1);
@@ -42,8 +42,8 @@ const Zap = () => {
   const fetchCommunesAndCiscos = async () => {
     try {
       const [resCommunes, resCiscos] = await Promise.all([
-        axios.get('http://localhost:3000/api/communes?limit=10000'),
-        axios.get('http://localhost:3000/api/ciscos?limit=10000')
+        axios.get('https://gestionenseignantjsavanc.onrender.com/api/communes?limit=10000'),
+        axios.get('https://gestionenseignantjsavanc.onrender.com/api/ciscos?limit=10000')
       ]);
       if (resCommunes.data.success) setCommunes(resCommunes.data.data || []);
       if (resCiscos.data.success) setCiscos(resCiscos.data.data || []);
@@ -91,9 +91,9 @@ const Zap = () => {
       }
 
       if (isEditing) {
-        await axios.put(`http://localhost:3000/api/zaps/${formData.id}`, finalFormData);
+        await axios.put(`https://gestionenseignantjsavanc.onrender.com/api/zaps/${formData.id}`, finalFormData);
       } else {
-        await axios.post('http://localhost:3000/api/zaps', finalFormData);
+        await axios.post('https://gestionenseignantjsavanc.onrender.com/api/zaps', finalFormData);
       }
       handleCloseModal();
       fetchZaps();
@@ -106,7 +106,7 @@ const Zap = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Voulez-vous vraiment supprimer cette ZAP ?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/zaps/${id}`);
+        await axios.delete(`https://gestionenseignantjsavanc.onrender.com/api/zaps/${id}`);
         fetchZaps();
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
@@ -124,7 +124,7 @@ const Zap = () => {
       const base64 = event.target.result;
       try {
         setLoading(true);
-        const response = await axios.post('http://localhost:3000/api/zaps/import', { fileBase64: base64 });
+        const response = await axios.post('https://gestionenseignantjsavanc.onrender.com/api/zaps/import', { fileBase64: base64 });
         alert(response.data.message);
         fetchZaps();
       } catch (error) {

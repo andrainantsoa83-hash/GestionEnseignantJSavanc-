@@ -16,7 +16,7 @@ const Login = () => {
       try {
         setLoading(true);
         setError('');
-        const res = await axios.post('http://localhost:3000/api/auth/login', {
+        const res = await axios.post('https://gestionenseignantjsavanc.onrender.com/api/auth/login', {
           code_service: codeService,
           password: password
         });
